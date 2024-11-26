@@ -1,8 +1,8 @@
 import os
 import flet as ft
 
-# ファイル名をディレクトリ名.拡張子に一括変更する関数
-def rename_files(directory, page):
+# ファイル名を一括変更する関数
+def rename_files(directory, page, rename_option):
     for root, dirs, files in os.walk(directory):
         folder_name = os.path.basename(root)
         file_count = {}  # 拡張子ごとのファイル数をカウントする辞書
@@ -11,11 +11,17 @@ def rename_files(directory, page):
             if file_extension.lower() in [".mp4", ".html"]:
                 file_path = os.path.join(root, filename)
                 
-                # ファイル名の重複を避ける
-                if file_extension not in file_count:
-                    file_count[file_extension] = 0
-                file_count[file_extension] += 1
-                new_name = f"{folder_name}_{file_count[file_extension]}{file_extension}"
+                # 変換方法に応じた新しい名前を生成
+                if rename_option == "folder_name":
+                    # ディレクトリ名と同じファイル名に変更
+                    if file_extension not in file_count:
+                        file_count[file_extension] = 0
+                    file_count[file_extension] += 1
+                    new_name = f"{folder_name}_{file_count[file_extension]}{file_extension}"
+                elif rename_option == "content":
+                    # ファイル名を content.拡張子 に変更
+                    new_name = f"content{file_extension}"
+
                 new_path = os.path.join(root, new_name)
 
                 try:
@@ -37,6 +43,15 @@ def main(page: ft.Page):
     select_button = ft.ElevatedButton(text="フォルダを選択")
     execute_button = ft.ElevatedButton(text="実行", disabled=True)
 
+    # 変換方法を選択するドロップダウンメニュー
+    rename_options = ft.Dropdown(
+        options=[
+            ft.dropdown.Option("folder_name", "ディレクトリ名と同じファイル名にする"),
+            ft.dropdown.Option("content", "content.拡張子 にする"),
+        ],
+        value="folder_name",
+    )
+
     # フォルダ選択ピッカーを初期化
     file_picker = ft.FilePicker(on_result=lambda e: folder_selected(e.path if e.path else None))
     page.overlay.append(file_picker)
@@ -53,7 +68,8 @@ def main(page: ft.Page):
     # ファイル名を変更する関数
     def execute_rename(e):
         if page.folder_path:
-            rename_files(page.folder_path, page)
+            rename_option = rename_options.value  # 選択された変換方法
+            rename_files(page.folder_path, page, rename_option)
             page.add(ft.Text("完了しました！", color="green"))
         else:
             page.add(ft.Text("エラー: フォルダが選択されていません", color="red"))
@@ -66,7 +82,8 @@ def main(page: ft.Page):
     page.add(
         ft.Column(
             [
-                ft.Text("ファイル名をディレクトリ名.拡張子に一括変更", size=20, weight="bold", text_align="center"),
+                ft.Text("ファイル名を一括変更", size=20, weight="bold", text_align="center"),
+                rename_options,
                 selected_folder,
                 select_button,
                 execute_button,
@@ -76,7 +93,4 @@ def main(page: ft.Page):
         )
     )
 
-
-
 ft.app(target=main)
-
